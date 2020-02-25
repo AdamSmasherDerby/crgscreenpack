@@ -262,6 +262,12 @@ a {
 	background-color:rgba(0,255,0,0.0);
 }
 
+.StatBarA {
+	background-color:rgba(0,0,0,1);
+	padding-left: 30px;
+	padding-right: 30px;
+}
+
 .hideme {
         visibility: hidden;
 }
