@@ -25,3 +25,7 @@ This is an update of the TCRD penalty screen developed by Jon Fox for version 4.
 This screen only shows the rosters and team logos.
 
 If you have any questions, feature requests, or suggestions for other screens, please feel free to submit an issue.
+
+## Roboto
+
+This is a publicly licensed font which is used for most of the screens. This folder should be in the same directory as the _folders_ containing the other screens.
