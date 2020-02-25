@@ -1,0 +1,72 @@
+body {	
+	font-size: 16pt;
+	font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+	font-weight:bold;
+}
+
+#MainDiv {
+	margin-top: 20px;
+	background-color: rgba(0,0,0,0);
+}
+
+table,tr,td{
+	border-collapse: collapse;
+	border-color:#777;
+	}
+
+.TeamName {
+	font-size: 30pt !important;
+}
+
+.Team {
+	position: relative;
+	width: 98%;
+	border-spacing: 1px;
+	border-collapse: collapse;
+	font-size: 3.25vh;
+	margin-top: 20px;
+	left: 1%;
+}
+.Team thead td { font-size: 1em; font-weight: bold; background-color: #222; color: #FFF; }
+.Team td { text-align: center; vertical-align: center; padding: 0px; }
+.Team .Number, .Team .Box, .Team .FO_EXP, .Team .Total { width: 8.33%; }
+.Team tr:nth-child(2n-1) { background-color: #FFF; }
+.Team tr:nth-child(2n-2) { background-color: #CCC; }
+
+td.Name {
+	width: 35%;
+}
+
+#TitleBar { 
+	left: 25.4%; 
+	right: 23.7%; 
+	top: 12.6%; 
+	bottom: 2%; 
+	height: 6.5%; 
+	text-align: center; 
+	z-index: 300; 
+	color: white;
+	margin-bottom: 3pt;}
+
+#TitleBarA {
+	background-color: #222;
+	font-size: 36pt;
+	padding-left: 100pt;
+	padding-right: 100pt;
+}
+
+/* responsive vertical layout on phones and tablet portrait */
+@media only screen and (max-width: 960px) { 
+   .Team{
+	position: relative;
+	float:left;
+	width: 99%;
+	margin-bottom:1em;
+	}
+	.Team1, .Team2 { 
+	position: relative; 
+	margin:2px;
+	left:auto;
+	right:auto;
+	}
+}
