@@ -105,8 +105,10 @@ function regenerateTable() {
 		processPriorJam(currentPeriod, jamsInPeriod(currentPeriod));
 	}
 
-	if (jamInProgress || !gameStarted) {
+	if (jamInProgress) {
 		$('#statusBox').html("Data for jams up to Period " + currentPeriod + ", Jam " + (parseInt(currentJam) - 1));
+	} else if (!gameStarted) {
+		$('#statusBox').html('');
 	} else {
 		$('#statusBox').html("Data for jams up to Period " + currentPeriod + ", Jam " + (parseInt(currentJam)));
 	}
@@ -130,7 +132,7 @@ function processPriorJam(p,j) {
 		jammerId = WS.state[prefix + '.Fielding(Jammer).Skater'];
 		wasSP = WS.state[prefix + '.StarPass'];
 
-		if (jammerId != "") { 
+		if (jammerId) { 
 		// If a jammer was entered, add the jammer to the list and increment their "jams" count
 			addJammer(t,jammerId);
 			incrementJams(t,jammerId);
@@ -146,7 +148,7 @@ function processPriorJam(p,j) {
 		if (wasSP){
 			// If there was a star pass, and a pivot was entered, add them to the list.
 			pivotId = WS.state[prefix + '.Fielding(Pivot).Skater'];
-			if (pivotId != ""){
+			if (pivotId){
 				addJammer(t,pivotId);
 				incrementSP(t,pivotId);
 				updatePenaltyCount(t,pivotId);
@@ -210,27 +212,32 @@ function updatePriorScore(t, jammerId, p, j, wasSP, pivotId){
 	var jamScore = 0;
 	var jammerScore = 0;
 	var pivotScore = 0;
-	var jammerCell = $('.Team' + t + ' tbody tr.Jammer[data-number=' + jammerList[jammerId].number + '] .Pts');
+	var jammerCell;
 	var pivotCell;
+	var difCell;
 	
-	// Update Jammer
 	jamScore = getJamScore(t, p, j);
 	pivotScore = WS.state['ScoreBoard.Period(' + p + ').Jam(' + j + ').TeamJam(' + t + ').AfterSPScore'];
-	jammerScore = jamScore - pivotScore;	
-	jammerList[jammerId].priorScore += jammerScore;
-	jammerCell.html(jammerList[jammerId].priorScore + ' ( ' + jammerList[jammerId].priorSPScore + ' )');
+	jammerScore = jamScore - pivotScore;
+
+	// Update Jammer Data
+	if (jammerId) {
+		jammerList[jammerId].priorScore += jammerScore;
+		jammerCell = $('.Team' + t + ' tbody tr.Jammer[data-number=' + jammerList[jammerId].number + '] .Pts');	
+		jammerCell.html(jammerList[jammerId].priorScore + ' ( ' + jammerList[jammerId].priorSPScore + ' )');
+		// Update the score difference column
+		difCell = $('.Team' + t + ' tbody tr.Jammer[data-number=' + jammerList[jammerId].number + '] .Dif');
+		jammerList[jammerId].priorDif = jammerList[jammerId].priorDif + jamScore - getJamScore(t%2+1,p,j);
+		difCell.html(jammerList[jammerId].priorDif);
+	}
 	
 	// Update Pivot in the event there was a star pass
-	if (wasSP && pivotId != '') {
+	if (wasSP && pivotId) {
 		jammerList[pivotId].priorSPScore += pivotScore;
 		pivotCell = $('.Team' + t + ' tbody tr.Jammer[data-number=' + jammerList[pivotId].number + '] .Pts');
 		pivotCell.html(jammerList[pivotId].priorScore + ' ( ' + jammerList[pivotId].priorSPScore + ' )');
 	}
-
-	// Update the score difference column
-	var difCell = $('.Team' + t + ' tbody tr.Jammer[data-number=' + jammerList[jammerId].number + '] .Dif');
-	jammerList[jammerId].priorDif = jammerList[jammerId].priorDif + jamScore - getJamScore(t%2+1,p,j);
-	difCell.html(jammerList[jammerId].priorDif);	
+	
 }
 
 function getJamScore(t, p, j){
