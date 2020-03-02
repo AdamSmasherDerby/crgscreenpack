@@ -1,0 +1,14 @@
+/**
+* This is a MINIMAL EXAMPLE to illustrate writing a custom screen for CRG Scoreboard
+* Version 4.0.
+ */
+
+#clock {
+	font-size:48px;
+	font-weight:bold;
+}
+
+#startjam, #timeout {
+	font-weight: bold;
+	font-size: 30px;
+}
