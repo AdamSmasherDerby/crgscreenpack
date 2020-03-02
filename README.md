@@ -6,7 +6,7 @@ Note that all of these screens are only as accurate as the data entered: display
 
 For broadcast purposes, it may be necessary to edit the relevant \*.css file to match the chromakey or overlay software in use.
 
-It is important to test the choices of colors you set to ensure they are sufficiently high contrast to be visible.  Setting a team's foreground color to white, and the background to yellow, may match their jersey's, but you won't be able to read it. (The "overlay" color option is used for each of these screens.)
+It is important to test the choices of colors you set to ensure they are sufficiently high contrast to be visible.  Setting a team's foreground color to white, and the background to yellow, may match their jerseys, but you won't be able to read it. (The "overlay" color option is used for each of these screens.)
 
 [![ko-fi](https://www.ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/J3J11GKIZ)
 
