@@ -31,3 +31,11 @@ If you have any questions, feature requests, or suggestions for other screens, p
 ## Roboto
 
 This is a publicly licensed font which is used for most of the screens. This folder should be in the same directory as the _folders_ containing the other screens.
+
+## Minimal Example
+
+This is _not useful_ for scoreboard operation.  Rather, it's a bare bones example of how to use a web page to read and set scoreboard data.  Javascript folks can use this file as a starting point for creating their own screens.
+
+### Version History
+1.0.0 - Initial Release
+1.1.0 - Added Minimal Example
