@@ -37,5 +37,5 @@ This is a publicly licensed font which is used for most of the screens. This fol
 This is _not useful_ for scoreboard operation.  Rather, it's a bare bones example of how to use a web page to read and set scoreboard data.  Javascript folks can use this file as a starting point for creating their own screens.
 
 ### Version History
-1.0.0 - Initial Release
-1.1.0 - Added Minimal Example
+* 1.0.0 - Initial Release
+* 1.1.0 - Added Minimal Example
