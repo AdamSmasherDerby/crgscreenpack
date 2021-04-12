@@ -1,9 +1,6 @@
 $(initialize);
 /*
- Inside whiteboard screen for use with CRG Penalty Tracking funcitonality.
- Basically just the original PT javascript with a few tweaks.
- Modified by Adam Smasher (Dan Alt)
- Last modified 7/3/16
+Penalty Display Screen for CRG 4.1+
 */
 var penaltyEditor = null;
 var period = null;
@@ -62,7 +59,7 @@ function skaterUpdate(t, k, v) {
 		return;
 	var id = match[1]; // id = skater id
 	var prefix = 'ScoreBoard.Team(' + t + ').Skater(' + id + ')';  
-	if (k == prefix + '.Number') { 
+	if (k == prefix + '.RosterNumber') { 
 		var rowd = $('.Teamd' + t + ' .Skater.Penalty[id=' + id + ']');
 		if (v == null) { 
 			$('.Teamd' + t + ' .Skater[id=' + id + ']').remove();
