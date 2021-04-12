@@ -46,7 +46,7 @@ function skaterUpdate(t, k, v) {
 		return;
 	var id = match[1]; 
 	var prefix = 'ScoreBoard.Team(' + t + ').Skater(' + id + ')';  
-	if (k == prefix + '.Number') { 
+	if (k == prefix + '.RosterNumber') { 
 		var rowd = $('.Teamd' + t + ' .Skater.Penalty[id=' + id + ']');
 		if (v == null) { 
 			$('.Teamd' + t + ' .Skater[id=' + id + ']').remove();
