@@ -166,7 +166,7 @@ function addJammer(t, id) {
 	// If this is a new jammer, add them to the jammer list, and add a row to the display
 		jammerList[id] = {
 			name: WS.state[prefix + '.Name'],
-			number: WS.state[prefix + '.Number'],
+			number: WS.state[prefix + '.RosterNumber'],
 			team: t,
 			priorScore: 0,
 			priorSPScore: 0,
