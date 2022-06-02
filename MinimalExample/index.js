@@ -1,7 +1,7 @@
 /*
 This is a minimal example to demonstrate writing a custom screen for CRG Scoreboard 
-Version 4.
-
+Version 4. For version 5, add "CurrentGame" the channel names, for example,
+"ScoreBoard.CurrentGame.Clock(Period).Time"
 */
 
 // This causes the "initialize" function to run every time the page is loaded or reloaded.

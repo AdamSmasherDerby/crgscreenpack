@@ -39,3 +39,4 @@ This is _not useful_ for scoreboard operation.  Rather, it's a bare bones exampl
 ### Version History
 * 1.0.0 - Initial Release
 * 1.1.0 - Added Minimal Example
+* 2.0.0 - Update for CRG 5.x

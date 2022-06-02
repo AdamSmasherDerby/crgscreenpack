@@ -1,6 +1,6 @@
 $(initialize);
 /*
-Penalty Display Screen for CRG 4.1+
+Penalty Display Screen for CRG 5.x and earlier
 */
 var penaltyEditor = null;
 var period = null;
@@ -9,43 +9,90 @@ var teamId = null;
 var skaterId = null;
 var penaltyId = null;
 var fo_exp = null;
+var debug = false;
+var crgVersion = 3; // Default to 3
+var crgMajor = 3; // Default to 3
+var gameId = null;
 
 function initialize() {
 	WS.Connect();
 	WS.AutoRegister();
+
+	// Initial Setup
 	$("#mainDiv").css({ "position": "fixed" });
 	var aspect16x9 = get16x9Dimensions();
 	$("#mainDiv").css(aspect16x9).css("fontSize", aspect16x9.height);
 
+	// Register channels and listeners
+
+	WS.Register( ['ScoreBoard.Version'], function(k,v) { processVersion(k, v); } ); // Only fires for version 4 and up
+	WS.Register( ['ScoreBoard.CurrentGame.Game'], function(k,v) { registerGame(k,v); }); // Only fires for version 5 and up
+
 	$.each([1, 2], function(idx, t) {
+		// Version < 5.0
 		WS.Register([ 'ScoreBoard.Team(' + t + ').Name' ]); 
 		WS.Register([ 'ScoreBoard.Team(' + t + ').AlternateName' ]);
-		WS.Register([ 'ScoreBoard.Team(' + t + ').Color' ], function(k, v) { $('.Team' + t + 'custColor').css('color', WS.state['ScoreBoard.Team(' + t + ').Color(overlay_fg)']); $('.Team' + t + 'custColor').css('background-color', WS.state['ScoreBoard.Team(' + t + ').Color(overlay_bg)']); $('#head' + t).css('background-color', WS.state['ScoreBoard.Team(' + t + ').Color(overlay_bg)']); } );
+		WS.Register([ 'ScoreBoard.Team(' + t + ').Color' ], function(k, v) {
+			 $('.Team' + t + 'custColor').css('color', WS.state['ScoreBoard.Team(' + t + ').Color(overlay_fg)']); 
+			 $('.Team' + t + 'custColor').css('background-color', WS.state['ScoreBoard.Team(' + t + ').Color(overlay_bg)']); 
+			 $('#head' + t).css('background-color', WS.state['ScoreBoard.Team(' + t + ').Color(overlay_bg)']); } );
 	});
 
-        WS.Register( [ 'ScoreBoard.Team(1).Logo' ], function(k, v) { $('.Logo1').attr('src', v); } );
-        WS.Register( [ 'ScoreBoard.Team(2).Logo' ], function(k, v) { $('.Logo2').attr('src', v); } );
-
+	// Version < 5.0
+	WS.Register( [ 'ScoreBoard.Team(1).Logo' ], function(k, v) { $('.Logo1').attr('src', v); } );
+	WS.Register( [ 'ScoreBoard.Team(2).Logo' ], function(k, v) { $('.Logo2').attr('src', v); } );
 	WS.Register( [ 'ScoreBoard.Team(1).Skater' ], function(k, v) { skaterUpdate(1, k, v); } ); 
 	WS.Register( [ 'ScoreBoard.Team(2).Skater' ], function(k, v) { skaterUpdate(2, k, v); } ); 
+	
 
 }
 
-function getAspectDimensions(aspect, overflow) {
-		var width, height, top, bottom, left, right;
-		if ((aspect > ($(window).width()/$(window).height())) == (overflow==true)) {
-			width = Math.round((aspect * $(window).height()));
-			height = $(window).height();
-			top = bottom = 0;
-			left = right = (($(window).width() - width) / 2);
-		} else {
-			width = $(window).width();
-			height = Math.round(($(window).width() / aspect));
-			top = bottom = (($(window).height() - height) / 2);
-			left = right = 0;
-		}
-		return { width: width, height: height, top: top, bottom: bottom, left: left, right: right };
+function registerGame(k,v){ // This branch only fires for version 5.0 and up
+	gameId = WS.state['ScoreBoard.CurrentGame.Game']
+
+	$.each([1, 2], function(idx, t) {
+		WS.Register([ 'ScoreBoard.Game('+ gameId +').Team(' + t + ').TeamName']); 
+		WS.Register([ 'ScoreBoard.Game('+ gameId +').Team(' + t + ').AlternateName']);
+		WS.Register([ 'ScoreBoard.Game('+ gameId +').Team(' + t + ').Color' ], function(k, v) {
+			$('.Team' + t + 'custColor').css('color', WS.state['ScoreBoard.Game('+ gameId +').Team(' + t + ').Color(overlay_fg)']); 
+			$('.Team' + t + 'custColor').css('background-color', WS.state['ScoreBoard.Game('+ gameId +').Team(' + t + ').Color(overlay_bg)']); 
+			$('#head' + t).css('background-color', WS.state['ScoreBoard.Game('+ gameId +').Team(' + t + ').Color(overlay_bg)']); } );
+
+	});
+
+    WS.Register( [ 'ScoreBoard.Game('+ gameId +').Team(1).Logo' ], function(k, v) { $('.Logo1').attr('src', v); } );
+    WS.Register( [ 'ScoreBoard.Game('+ gameId +').Team(2).Logo' ], function(k, v) { $('.Logo2').attr('src', v); } );
+	WS.Register( [ 'ScoreBoard.Game('+ gameId +').Team(1).Skater' ], function(k, v) { skaterUpdate(1, k, v); } ); 
+	WS.Register( [ 'ScoreBoard.Game('+ gameId +').Team(2).Skater' ], function(k, v) { skaterUpdate(2, k, v); } ); 
+
+}
+
+function processVersion(k, v) { // This branch only fires for 4 and up
+	crgVersion = WS.state['ScoreBoard.Version(release)'];
+	crgMajor = parseInt(crgVersion.match(/v(\d+)/)[1]);
+
+	// Debug
+	if (debug) {
+		$("#debug").html(crgVersion);
 	}
+}
+
+
+function getAspectDimensions(aspect, overflow) {
+	var width, height, top, bottom, left, right;
+	if ((aspect > ($(window).width()/$(window).height())) == (overflow==true)) {
+		width = Math.round((aspect * $(window).height()));
+		height = $(window).height();
+		top = bottom = 0;
+		left = right = (($(window).width() - width) / 2);
+	} else {
+		width = $(window).width();
+		height = Math.round(($(window).width() / aspect));
+		top = bottom = (($(window).height() - height) / 2);
+		left = right = 0;
+	}
+	return { width: width, height: height, top: top, bottom: bottom, left: left, right: right };
+}
 
 function get16x9Dimensions(overflow) {
 	return this.getAspectDimensions(16/9, overflow); 
@@ -54,11 +101,18 @@ function get16x9Dimensions(overflow) {
 var skaterIdRegex = /Skater\(([^\)]+)\)/;
 var penaltyRegex = /Penalty\(([^\)]+)\)/;
 function skaterUpdate(t, k, v) { 
+	var prefix = '';
 	match = k.match(skaterIdRegex); 
 	if (match == null || match.length == 0)
 		return;
 	var id = match[1]; // id = skater id
-	var prefix = 'ScoreBoard.Team(' + t + ').Skater(' + id + ')';  
+
+	if ( crgMajor < 5 ) {
+		prefix = 'ScoreBoard.Team(' + t + ').Skater(' + id + ')';  
+	} else {
+		prefix = 'ScoreBoard.Game('+ gameId +').Team(' + t + ').Skater(' + id + ')';
+	}
+
 	if (k == prefix + '.RosterNumber') { 
 		var rowd = $('.Teamd' + t + ' .Skater.Penalty[id=' + id + ']');
 		if (v == null) { 
@@ -83,11 +137,17 @@ function skaterUpdate(t, k, v) {
 }
 
 function displayPenalty(t, s, p) { // team skater penalty#
+	var prefix = '';
 	var penaltyBoxd = $('.Teamd' + t + ' .Skater.Penalty[id=' + s + '] .Box' + p);
 	var totalBoxd = $('.Teamd' + t + ' .Skater.Penalty[id=' + s + '] .Total');
 
-	var prefix = 'ScoreBoard.Team(' + t + ').Skater(' + s + ').Penalty(' + p + ')';
-	var nprefix = 'ScoreBoard.Team(' + t + ').Skater(' + s + ')';
+	if ( crgMajor < 5) {
+		prefix = 'ScoreBoard.Team(' + t + ').Skater(' + s + ').Penalty(' + p + ')';
+	} else {
+		prefix = 'ScoreBoard.Game('+ gameId +').Team(' + t + ').Skater(' + s + ').Penalty(' + p + ')';
+	}
+
+	//var nprefix = 'ScoreBoard.Team(' + t + ').Skater(' + s + ')';
 	code = WS.state[prefix + ".Code"];
 	if (code != null) {
 		penaltyBoxd.data("id", WS.state[prefix + ".Id"]);
@@ -110,14 +170,22 @@ function displayPenalty(t, s, p) { // team skater penalty#
 }
 
 function makeSkaterRows(t, id, number) { 
-	var team = $('.Team' + t + ' tbody'); //for example team = $('.Team1 tbody)
+	var prefix = ''
+	if ( crgMajor < 5) {
+		prefix = 'ScoreBoard.Team(' + t + ')';
+	} else {
+		prefix = 'ScoreBoard.Game('+ gameId +').Team(' + t + ')';
+	}
+
+	//var team = $('.Team' + t + ' tbody'); //for example team = $('.Team1 tbody)
 	var teamd = $('.Teamd' + t); //for example team = $('.Team1 tbody)
 	var pd = $('<div class="tdivr">').addClass('Skater Penalty').attr('id', id).data('number', number);
-	var head = document.getElementById('head' + t);
-	var teamName = WS.state['ScoreBoard.Team(' + t + ').Name'];
-	var teamFColor = WS.state['ScoreBoard.Team(' + t + ').Color(overlay_fg)'];
-	var teamBColor = WS.state['ScoreBoard.Team(' + t + ').Color(overlay_bg)'];
+	//var head = document.getElementById('head' + t);
+	var teamName = WS.state['ScoreBoard.Team(' + t + ').Name']; // Not actually used
+	var teamFColor = WS.state[prefix + '.Color(overlay_fg)'];
+	var teamBColor = WS.state[prefix + '.Color(overlay_bg)'];
 	
+	// Update this if I put team names back in - only 4.0 compliant now.
 	if (WS.state['ScoreBoard.Team(' + t + ').AlternateName(whiteboard)'] != null) {
 		teamName = WS.state['ScoreBoard.Team(' + t + ').AlternateName(whiteboard)']
 	}
@@ -125,7 +193,7 @@ function makeSkaterRows(t, id, number) {
         $('.Team' + t + 'custColor').css('background-color', teamBColor);
 	
 	pd.append($('<div width=10%>').addClass('Number').text(number));
-	pd.append($('<div width=50%>').addClass('Name').text(WS.state['ScoreBoard.Team(' + t + ').Skater(' + id + ').Name']));
+	pd.append($('<div width=50%>').addClass('Name').text(WS.state[prefix + '.Skater(' + id + ').Name']));
 	$.each([1, 2, 3, 4, 5, 6, 7, 8, 9], function(idx, c) {
 		pd.append($('<div width=10%>').addClass('Box Box' + c).html('&nbsp;').css('color',teamFColor));
 	});

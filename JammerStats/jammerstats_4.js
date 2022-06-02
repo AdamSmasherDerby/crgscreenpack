@@ -6,10 +6,82 @@ var jammerList = {};
 var starPass = {1: false, 2: false};
 var spOffset = {1: 0, 2: 0};
 var lead = {1: false, 2: false};
+var crgVersion = 3; // Default to 3
+var crgMajor = 3; // Default to 3
 
 function initialize() {
 	jammerList = {};
+	WS.AutoRegister();
+	WS.Connect();
 	
+	// Determine CRG Version
+
+	WS.Register( ['ScoreBoard.Version'], function(k,v) { processVersion(k, v); } ); // Only fires for version 4 and up
+	
+	// Used to determine number of jams in period 1
+	WS.Register(['ScoreBoard.Period(*).CurrentJamNumber']);
+
+	// ==Register channels for CRG > 5.0==
+
+	// Clock Data 
+	WS.Register(['ScoreBoard.CurrentGame.Clock(Intermission).Number']);
+	WS.Register(['ScoreBoard.CurrentGame.Clock(Intermission).Running']);
+	WS.Register( ['ScoreBoard.CurrentGame.Clock(Period).Number' ] );
+	WS.Register( ['ScoreBoard.CurrentGame.Clock(Jam).Number' ] );
+	WS.Register( ['ScoreBoard.CurrentGame.Clock(Jam).Running']);
+
+	// Jam Data
+	WS.Register(['ScoreBoard.CurrentGame.Period(*).Jam(*).TeamJam(*).JamScore']);
+	WS.Register(['ScoreBoard.CurrentGame.Period(*).Jam(*).TeamJam(*).StarPass']);
+	WS.Register(['ScoreBoard.CurrentGame.Period(*).Jam(*).TeamJam(*).Lead']);
+	WS.Register(['ScoreBoard.CurrentGame.Period(*).Jam(*).TeamJam(*).AfterSPScore']);
+
+	// Skater Data
+	WS.Register(['ScoreBoard.CurrentGame.Period(*).Jam(*).TeamJam(*).Fielding(Jammer).Skater']);
+	WS.Register(['ScoreBoard.CurrentGame.Period(*).Jam(*).TeamJam(*).Fielding(Pivot).Skater']);
+
+	// Team Specific Listeners
+	$.each([1, 2], function(idx, t) {
+
+		// When the team name, alternate name, or color changes, update the relevant areas
+		WS.Register([ 'ScoreBoard.CurrentGame.Team(' + t + ').Name' ], function(k,v) {
+			$('.Team' + t + ' .TeamName').html(v);
+		}); 
+		WS.Register([ 'ScoreBoard.CurrentGame.Team(' + t + ').AlternateName' ]);
+		WS.Register([ 'ScoreBoard.CurrentGame.Team(' + t + ').Color' ], function(k, v) { 
+			processScoreboardColors(k,v,t);		
+		});
+
+		// Register a listener for skater information. (Where penalties are stored)
+		WS.Register( [ 'ScoreBoard.CurrentGame.Team(' + t + ').Skater' ], function(k, v){
+			processPenalty(k,v,t);
+		} ); 
+
+	});
+
+	// Regenerate the table 1 second and 30 seconds into intermission.
+	WS.Register( ['ScoreBoard.CurrentGame.Clock(Intermission).InvertedTime'], function(k,v){
+		if (v == 1000 || v == 30000) {
+			regenerateTable();
+		}
+	});
+
+	// Regenerate the table 1 second into each new jam.
+	WS.Register( ['ScoreBoard.CurrentGame.Clock(Jam).InvertedTime'], function(k,v) {
+		if (v == 1000) {
+			regenerateTable();
+		}
+	})
+
+	// ==Register channels for CRG < 5.0==
+
+	// Clock Data 
+	WS.Register(['ScoreBoard.Clock(Intermission).Number']);
+	WS.Register(['ScoreBoard.Clock(Intermission).Running']);
+	WS.Register( ['ScoreBoard.Clock(Period).Number' ] );
+	WS.Register( ['ScoreBoard.Clock(Jam).Number' ] );
+	WS.Register( ['ScoreBoard.Clock(Jam).Running']);
+
 	// Jam Data
 	WS.Register(['ScoreBoard.Period(*).Jam(*).TeamJam(*).JamScore']);
 	WS.Register(['ScoreBoard.Period(*).Jam(*).TeamJam(*).StarPass']);
@@ -20,19 +92,7 @@ function initialize() {
 	WS.Register(['ScoreBoard.Period(*).Jam(*).TeamJam(*).Fielding(Jammer).Skater']);
 	WS.Register(['ScoreBoard.Period(*).Jam(*).TeamJam(*).Fielding(Pivot).Skater']);
 	
-	// Clock Data
-	WS.Register(['ScoreBoard.Clock(Intermission).Number']);
-	WS.Register(['ScoreBoard.Clock(Intermission).Running']);
-	WS.Register( [ 'ScoreBoard.Clock(Period).Number' ] );
-	WS.Register( [ 'ScoreBoard.Clock(Jam).Number' ] );
-	WS.Register( ['ScoreBoard.Clock(Jam).Running']);
-	
-	// Used to determine number of jams in period 1
-	WS.Register(['ScoreBoard.Period(*).CurrentJamNumber']);
-
-	// DEFINITELY KEEP ABOVE THIS LINE
-
-	// Register Listeners
+	// Team Specific Listeners
 	$.each([1, 2], function(idx, t) {
 
 		// When the team name, alternate name, or color changes, update the relevant areas
@@ -66,17 +126,21 @@ function initialize() {
 		}
 	})
 		
-	WS.AutoRegister();
-	WS.Connect();
-
 	//Wait for the rest of the data to update, the regenerate the table.
 	setTimeout(function() { regenerateTable() } , 500);
 	
 }
 
+function processVersion(k, v) { // This branch only fires for 4 and up
+	crgVersion = WS.state['ScoreBoard.Version(release)'];
+	crgMajor = parseInt(crgVersion.match(/v(\d+)/)[1]);
+}
+
 
 function regenerateTable() {
 	// Go through game state and regenerate table for jams prior to the current one.
+	var prefix = 'ScoreBoard';
+	if (crgMajor > 4) { prefix = 'ScoreBoard.CurrentGame'}
 
 	jammerList = {};
 
@@ -84,14 +148,14 @@ function regenerateTable() {
 	$.each([1, 2], function(idx, t) {$('.Team' + t + ' tbody').empty();})
 
 	// Add jammers for prior periods
-	var currentJam = WS.state['ScoreBoard.Clock(Jam).Number'];
-	var currentPeriod = WS.state['ScoreBoard.Clock(Period).Number'];
-	var jamInProgress = WS.state['ScoreBoard.Clock(Jam).Running'];
-	var gameStarted = (WS.state['ScoreBoard.Clock(Intermission).Number'] > 0 ? true : false);
-	var intermission = (WS.state['ScoreBoard.Clock(Intermission).Running']);
+	var currentJam = WS.state[ prefix + '.Clock(Jam).Number'];
+	var currentPeriod = WS.state[ prefix + '.Clock(Period).Number'];
+	var jamInProgress = WS.state[ prefix + '.Clock(Jam).Running'];
+	var gameStarted = (WS.state[ prefix + '.Clock(Intermission).Number'] > 0 ? true : false);
+	var intermission = (WS.state[ prefix + '.Clock(Intermission).Running']);
 	if (currentPeriod == 2) {
 		// If this is the second period, process all the jams for the first period
-		var jamsInFirstPeriod = WS.state['ScoreBoard.Period(1).CurrentJamNumber'];
+		var jamsInFirstPeriod = WS.state[ prefix + '.Period(1).CurrentJamNumber'];
 		for (j=1; j <= jamsInFirstPeriod; j++) {
 			processPriorJam(1, j);
 		}
@@ -128,7 +192,11 @@ function processPriorJam(p,j) {
 	
 	$.each([1, 2], function(idx, t) {
 
-		prefix = 'ScoreBoard.Period(' + p + ').Jam(' + j + ').TeamJam(' + t + ')';
+		if (crgMajor < 5) {
+			prefix = 'ScoreBoard.Period(' + p + ').Jam(' + j + ').TeamJam(' + t + ')';
+		} else {
+			prefix = 'ScoreBoard.CurrentGame.Period(' + p + ').Jam(' + j + ').TeamJam(' + t + ')';
+		}
 		jammerId = WS.state[prefix + '.Fielding(Jammer).Skater'];
 		wasSP = WS.state[prefix + '.StarPass'];
 
@@ -161,7 +229,12 @@ function processPriorJam(p,j) {
 function addJammer(t, id) {
 // Given a team and Jammer ID, add them to the list if they are not present.
 
-	prefix = 'ScoreBoard.Team(' + t + ').Skater(' + id + ')';
+	if (crgMajor < 5) {
+		prefix = 'ScoreBoard.Team(' + t + ').Skater(' + id + ')';
+	} else {
+		prefix = 'ScoreBoard.CurrentGame.Team(' + t + ').Skater(' + id + ')';
+	}
+
 	table = $('.Team' + t + ' tbody');
 	
 	if (!jammerList.hasOwnProperty(id)){
@@ -217,7 +290,11 @@ function updatePriorScore(t, jammerId, p, j, wasSP, pivotId){
 	var difCell;
 	
 	jamScore = getJamScore(t, p, j);
-	pivotScore = WS.state['ScoreBoard.Period(' + p + ').Jam(' + j + ').TeamJam(' + t + ').AfterSPScore'];
+	if (crgMajor < 5) {
+		pivotScore = WS.state['ScoreBoard.Period(' + p + ').Jam(' + j + ').TeamJam(' + t + ').AfterSPScore'];
+	} else {
+		pivotScore = WS.state['ScoreBoard.CurrentGame.Period(' + p + ').Jam(' + j + ').TeamJam(' + t + ').AfterSPScore'];
+	}
 	jammerScore = jamScore - pivotScore;
 
 	// Update Jammer Data
@@ -241,7 +318,11 @@ function updatePriorScore(t, jammerId, p, j, wasSP, pivotId){
 }
 
 function getJamScore(t, p, j){
-	return WS.state['ScoreBoard.Period(' + p + ').Jam(' + j + ').TeamJam(' + t + ').JamScore'];
+	if (crgMajor < 5) {
+		return WS.state['ScoreBoard.Period(' + p + ').Jam(' + j + ').TeamJam(' + t + ').JamScore'];
+	} else {
+		return WS.state['ScoreBoard.CurrentGame.Period(' + p + ').Jam(' + j + ').TeamJam(' + t + ').JamScore'];
+	}
 }
 
 function incrementJams(t, id) {
@@ -267,7 +348,7 @@ function incrementLead(t, id) {
 
 function updateLeadPct(t, id) {
 // Given a team and a jammer ID, update the lead percentage based on the current content of the table
-	var leadCell = $('.Team' + t + ' tbody tr.Jammer[data-number=' + jammerList[id].number + '] .Lead');
+	//var leadCell = $('.Team' + t + ' tbody tr.Jammer[data-number=' + jammerList[id].number + '] .Lead');
 	var jamsCell = $('.Team' + t + ' tbody tr.Jammer[data-number=' + jammerList[id].number + '] .Jams');
 	var leadPctCell = $('.Team' + t + ' tbody tr.Jammer[data-number=' + jammerList[id].number + '] .LeadPct');
 	var leadCount = jammerList[id].lead;
@@ -291,18 +372,28 @@ function updatePenaltyCount(t,id) {
 function jamsInPeriod(p) {
 // return the number of jams in period p
 	var maxJams = 100 // This is absurdly high.
-	
-	for (var j = 1; j < maxJams; j++){
-		if (WS.state['Game.Period('+ p +').Jam(' + j + ').JamLength'] == undefined){
-			return j-1;
+	if (crgMajor < 5) {
+		for (var j = 1; j < maxJams; j++){
+			if (WS.state['Game.Period('+ p +').Jam(' + j + ').JamLength'] == undefined){
+				return j-1;
+			}
+		}
+	} else {
+		for (var j = 1; j < maxJams; j++){
+			if (WS.state['ScoreBoard.CurrentGame.Period('+ p +').Jam(' + j + ').Duration'] == undefined){
+				return j-1;
+			}
 		}
 	}
 }
 
 function processScoreboardColors(k, v, t){
 // Given a change in overlay color, update the screen
-	var overlayFg = WS.state['ScoreBoard.Team(' + t + ').Color(overlay_fg)'];
-	var overlayBg = WS.state['ScoreBoard.Team(' + t + ').Color(overlay_bg)'];
+	var prefix = 'ScoreBoard';
+	if (crgMajor > 4) { prefix = 'ScoreBoard.CurrentGame'}
+
+	var overlayFg = WS.state[prefix + 'Team(' + t + ').Color(overlay_fg)'];
+	var overlayBg = WS.state[prefix + 'Team(' + t + ').Color(overlay_bg)'];
 
 	if (overlayFg == null) { overlayFg == 'white'; }
 	if (overlayBg == null) { overlayBg == 'black'; }
@@ -314,6 +405,9 @@ function processScoreboardColors(k, v, t){
 function nPenalties(t, id) {
 // Given a team and skater ID, get the number of penalties presently in the state.
 	var prefix = 'ScoreBoard.Team(' + t + ').Skater(' + id + ').Penalty(';
+	if (crgMajor > 4) {
+		prefix = 'ScoreBoard.CurrentGame.Team(' + t + ').Skater(' + id + ').Penalty(';
+	}
 	var nPenalties = 0;
 	var code = '';
 	
